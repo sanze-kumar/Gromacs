@@ -1,0 +1,14 @@
+# List of mdp files use in simulation of protein in water only.
+
+1. ions.mdp
+2. minim.mdp
+3. nvt.mdp
+4. npt.mdp
+5. md.mdp
+
+You need to apply changes only in md.mdp for setting up the simulation time. I set for 200ns, you can adjust the time at fematosecond and picosecond.
+# nsteps = 100000000  ; 2*100000000 = 200000 ps (200 ns)
+
+#Errors
+Mostly errors comes from ions.mdp, due to misarrange the number of total atoms in topol.top.
+Open the topol.top file and goto last line set the format and save it.
