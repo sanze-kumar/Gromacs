@@ -1,0 +1,11 @@
+# List of mdp files use in protein with ligand complex simulation
+
+1. em.mdp
+2. ions.mdp
+3. nvt.mdp
+4. npt.mdp
+5. md.mdp
+
+You need to apply changes in nvt.mdp, npt.mdp and md.mdp files at XXX = tc-grps = Protein_XXX Water_and_ion. XXX is your ligand name in *.gro file.
+Also, you need to set the simulation time in md.mdp file
+# nsteps = 100000000    ; 2 * 100000000 = 200000 ps (200 ns)
