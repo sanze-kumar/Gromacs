@@ -1,0 +1,129 @@
+# Preparation of Ligand topology
+# Method 1
+conda activate acpype
+acpype -i ligand.mol2
+
+# Method 2
+Open avogadro program in windows
+open ligand.pdb
+Click on build-add hydrogens
+save as ligand.mol2
+Open ligand.mol2 in text editor and replace UNK into new molecule name with 1 MOL
+OPEN perl scrit to sort the atoms order
+>perl sort_mol2_bonds.pl ligand.mol2 ligand_H.mol2
+open Acpype webserver submit ligand_H.mol2
+Download and extract in new folder
+copy only _GMX.itp and _GMX.gro and paste in working directory
+
+# Method 3
+Open LigParGen server and paste ligand coordinates
+Download .gro and .itp files, paste in working directory.
+
+
+# Protein topology preparation
+gmx pdb2gmx -f ts.pdb -o complex.gro -ignh
+9
+1
+
+# Complex file preparation
+open complex.gro and add numbers of _GMX.gro and in the end line paste _GMX.gro coordinates
+open topol.top and paste in the forcefield section
+#include "LIG.itp"
+And add LIG 	1 in molecules section
+
+# Solvation
+gmx editconf -f complex.gro -o newbox.gro -bt dodecahedron -d 1.0
+gmx solvate -cp newbox.gro -cs spc216.gro -p topol.top -o solv.gro
+
+# Ions
+gmx grompp -f ions.mdp -c solv.gro -p topol.top -o ions.tpr
+gmx genion -s ions.tpr -o solv_ions.gro -p topol.top -pname NA -nname CL -neutral
+15
+
+# Energy minimization
+gmx grompp -f em.mdp -c solv_ions.gro -p topol.top -o em.tpr
+gmx mdrun -v -deffnm em
+
+# Indexing of ligand
+gmx make_ndx -f LIG.gro -o index_LIG.ndx
+0 & ! a H*
+q
+
+# Restrain minimization
+gmx genrestr -f LIG.gro -n index_LIG.ndx -o posre_LIG.itp -fc 1000 1000 1000
+3
+Paste the follwoing line into topol.top in between protein and water position..
+; Ligand position restraints
+#ifdef POSRES_LIG
+#include "posre_LIG.itp"
+#endif
+
+gmx make_ndx -f em.gro -o index.ndx
+> 1 | 13
+> q
+
+# Equilibration 1
+gmx grompp -f nvt.mdp -c em.gro -r em.gro -p topol.top -n index.ndx -o nvt.tpr
+gmx mdrun -v -deffnm nvt
+
+# Equilibration 2
+gmx grompp -f npt.mdp -c nvt.gro -t nvt.cpt -r nvt.gro -p topol.top -n index.ndx -o npt.tpr
+gmx mdrun -v -deffnm npt
+
+# Final production run
+gmx grompp -f md.mdp -c npt.gro -t npt.cpt -p topol.top -n index.ndx -o md.tpr
+
+# If you dont know about exact number of GPU then run
+gmx mdrun -v -deffnm md -nb auto
+
+# If you know about exact number of GPU then run
+gmx_mpi mdrun -deffnm md -ntomp 4 -v -pin on -nb gpu
+gmx_mpi mdrun -deffnm md -v -nb gpu -bonded gpu -pme gpu
+
+
+# Trajectory Analysis
+gmx_mpi trjconv -s md.tpr -f md.xtc -o md_center.xtc -center -pbc nojump -ur compact
+1
+0
+
+# RMSD
+gmx_mpi rms -s md.tpr -f md_center.xtc -o pr_rmsd.xvg -tu ns
+4
+4
+# RMSD distance
+gmx_mpi rmsdist -s md.tpr -f md_center.xtc -o complex_distance-rmsd.xvg
+4
+4
+
+# RMSF 1
+gmx_mpi rmsf -s md.tpr -f md_center.xtc -n index.ndx -o rmsf.xvg -tu ns
+4
+4
+
+# RMSF 2
+gmx_mpi rmsf -s md200.tpr -f md200_center.xtc -o PTrmsf.xvg -res
+4
+
+# Radius of Gyration
+gmx_mpi gyrate -s md.tpr -f md_center.xtc -o new_gyrate.xvg
+1
+
+# Hydrogen bond analysis
+gmx_mpi hbond -f md_center.xtc -s md.tpr -num PT-hb.xvg -n index.ndx -tu ns
+1
+13
+or 22 (protein_lig)
+
+# Energy components
+gmx_mpi energy -f md300.edr -o potential-C1.xvg
+
+# PCA analaysis
+gmx_mpi covar -f md200.xtc -s md200.tpr
+4
+4
+
+# SASA Analaysis
+gmx_mpi sasa -s md.tpr -f md_center.xtc -o sasa.xvg -odg solv.xvg
+1
+
+## More to be added ##
