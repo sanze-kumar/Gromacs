@@ -51,5 +51,5 @@ gmx mdrun -v -deffnm npt
 echo "Step 7 Completed"
 echo ""
 echo "Step 8 : Final MD Simulation"
-gmx grompp -f md.mdp -c npt.gro -t npt.cpt -p topol.top -o md50.tpr
-gmx mdrun -v -deffnm md50 -nb gpu
+gmx grompp -f md.mdp -c npt.gro -t npt.cpt -p topol.top -o md.tpr
+gmx mdrun -v -deffnm md -nb gpu
